@@ -75,9 +75,6 @@ namespace ros2_ipcamera
 
     cv::VideoCapture cap_;
     std::string rtsp_url_;
-    std::string rtsp_username_;
-    std::string rtsp_password_;
-    std::string source_;
     int width_;
     int height_;
 

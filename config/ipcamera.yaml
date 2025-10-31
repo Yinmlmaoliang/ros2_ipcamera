@@ -1,9 +1,37 @@
-ipcamera:
+# Three camera configuration for ros2_ipcamera
+#
+# Configuration Notes:
+# - rtsp_url: RTSP stream URL for each camera
+#   * For cameras without authentication: "rtsp://ip:port/stream"
+#   * For cameras with authentication: "rtsp://username:password@ip:port/stream"
+#   Example: "rtsp://admin:password123@192.168.1.100:554/stream1"
+#
+# - image_width/height: Expected resolution from camera (node does NOT resize)
+# - enable_undistort: Set to true to apply undistortion using config/camera_info.yaml
+#   All three cameras will use the same calibration file
+#
+# Published topics:
+# - /camera1/image_raw
+# - /camera2/image_raw
+# - /camera3/image_raw
+
+camera1:
   ros__parameters:
-    rtsp_url: "rtsp://192.168.1.64:554"
-    rtsp_username: "admin"
-    rtsp_password: "924431601ymlrc2."
-    image_topic: "image_raw"
-    image_width: 640
-    image_height: 480
+    rtsp_url: "rtsp://192.168.1.100:554/stream1"
+    image_width: 1920
+    image_height: 1080
+    enable_undistort: false
+
+camera2:
+  ros__parameters:
+    rtsp_url: "rtsp://192.168.1.101:554/stream1"
+    image_width: 1920
+    image_height: 1080
+    enable_undistort: false
+
+camera3:
+  ros__parameters:
+    rtsp_url: "rtsp://192.168.1.102:554/stream1"
+    image_width: 1920
+    image_height: 1080
     enable_undistort: false
