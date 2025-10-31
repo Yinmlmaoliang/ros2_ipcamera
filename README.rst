@@ -54,6 +54,12 @@ Topics:
 
 ``/ipcamera/camera_info`` - topic for camera info
 
+Acknowledgments:
+----
+This project is based on the original work by `surfertas`_. Special thanks to the original author for creating the ROS2 IP camera component.
+
+.. _surfertas: https://github.com/surfertas/ros2_ipcamera
+
 References:
 ----
 1. https://github.com/ros2/demos/blob/master/image_tools/src/cam2image.cpp
