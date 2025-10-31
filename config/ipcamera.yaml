@@ -1,0 +1,9 @@
+ipcamera:
+  ros__parameters:
+    rtsp_url: "rtsp://192.168.1.64:554"
+    rtsp_username: "admin"
+    rtsp_password: "924431601ymlrc2."
+    image_topic: "image_raw"
+    image_width: 640
+    image_height: 480
+    enable_undistort: false
