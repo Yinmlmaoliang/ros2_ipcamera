@@ -12,17 +12,9 @@ Installation:
 
 .. code:: bash
 
-  git clone https://github.com/surfertas/ros2_ipcamera.git
+  git clone https://github.com/Yinmlmaoliang/ros2_ipcamera.git
   colcon build --symlink-install
   . install/setup.bash
-
-Docker:
-
-.. code:: bash
-
-  git clone https://github.com/surfertas/ros2_ipcamera.git
-  cd ros2_ipcamera
-  sudo docker build -t ros2_ipcamera/latest .
 
 Usage:
 ----
