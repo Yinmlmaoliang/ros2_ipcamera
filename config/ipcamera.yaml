@@ -17,21 +17,21 @@
 
 camera1:
   ros__parameters:
-    rtsp_url: "rtsp://192.168.1.100:554/stream1"
+    rtsp_url: "rtsp://192.168.137.208:8554/camera1"
     image_width: 1920
     image_height: 1080
     enable_undistort: false
 
 camera2:
   ros__parameters:
-    rtsp_url: "rtsp://192.168.1.101:554/stream1"
+    rtsp_url: "rtsp://192.168.137.208:8554/camera2"
     image_width: 1920
     image_height: 1080
     enable_undistort: false
 
 camera3:
   ros__parameters:
-    rtsp_url: "rtsp://192.168.1.102:554/stream1"
+    rtsp_url: "rtsp://192.168.137.208:8554/camera3"
     image_width: 1920
     image_height: 1080
     enable_undistort: false

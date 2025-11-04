@@ -16,14 +16,6 @@ Installation:
   colcon build --symlink-install
   . install/setup.bash
 
-Docker:
-
-.. code:: bash
-
-  git clone https://github.com/surfertas/ros2_ipcamera.git
-  cd ros2_ipcamera
-  sudo docker build -t ros2_ipcamera/latest .
-
 Usage:
 ----
 
@@ -35,17 +27,7 @@ Usage:
 
   ros2 run ros2_ipcamera composition
 
-  # Alternatively use the launch file
-  ros2 launch ros2_ipcamera ipcamera.launch.py
-
-Docker:
-
-.. code:: bash
-
-  # Update rtsp_uri in the yaml file.
-  sudo docker run -it ros2_ipcamera/latest bash
-  vi src/ros2_ipcamera/config/ipcamera.yaml
-  source ./install/setup.bash
+  # Alternatively use the launch file (recommended)
   ros2 launch ros2_ipcamera ipcamera.launch.py
 
 Topics:

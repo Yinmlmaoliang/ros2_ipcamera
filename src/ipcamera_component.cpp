@@ -44,7 +44,10 @@ namespace ros2_ipcamera
     this->pub_ = image_transport::create_publisher(
       this, "~/image_raw", qos_.get_rmw_qos_profile());
 
-    this->execute();
+    // Create timer for frame capture instead of blocking loop
+    this->timer_ = this->create_wall_timer(
+      this->freq_,
+      std::bind(&IpCamera::timer_callback, this));
   }
 
   IpCamera::IpCamera(const rclcpp::NodeOptions & options)
@@ -251,40 +254,44 @@ namespace ros2_ipcamera
   }
 
   void
+  IpCamera::timer_callback()
+  {
+    // Initialize OpenCV image matrices.
+    static cv::Mat frame;
+    static cv::Mat undistorted_frame;
+    static size_t frame_id = 0;
+
+    // Initialize a shared pointer to an Image message.
+    auto msg = std::make_unique<sensor_msgs::msg::Image>();
+    msg->is_bigendian = false;
+
+    // Get the frame from the video capture.
+    this->cap_ >> frame;
+    // Check if the frame was grabbed correctly
+    if (!frame.empty()) {
+      // Apply undistortion if enabled
+      if (enable_undistort_) {
+        cv::remap(frame, undistorted_frame, map1_, map2_, cv::INTER_LINEAR);
+        // Convert undistorted frame to a ROS image
+        convert_frame_to_message(undistorted_frame, frame_id, *msg);
+      } else {
+        // Convert original frame to a ROS image
+        convert_frame_to_message(frame, frame_id, *msg);
+      }
+      // Publish the image message and increment the frame_id.
+      this->pub_.publish(std::move(msg));
+      ++frame_id;
+    }
+  }
+
+  void
   IpCamera::execute()
   {
-    rclcpp::Rate loop_rate(freq_);
-
-    // Initialize OpenCV image matrices.
-    cv::Mat frame;
-    cv::Mat undistorted_frame;
-
-    size_t frame_id = 0;
-    // Our main event loop will spin until the user presses CTRL-C to exit.
-    while (rclcpp::ok()) {
-      // Initialize a shared pointer to an Image message.
-      auto msg = std::make_unique<sensor_msgs::msg::Image>();
-      msg->is_bigendian = false;
-
-      // Get the frame from the video capture.
-      this->cap_ >> frame;
-      // Check if the frame was grabbed correctly
-      if (!frame.empty()) {
-        // Apply undistortion if enabled
-        if (enable_undistort_) {
-          cv::remap(frame, undistorted_frame, map1_, map2_, cv::INTER_LINEAR);
-          // Convert undistorted frame to a ROS image
-          convert_frame_to_message(undistorted_frame, frame_id, *msg);
-        } else {
-          // Convert original frame to a ROS image
-          convert_frame_to_message(frame, frame_id, *msg);
-        }
-        // Publish the image message and increment the frame_id.
-        this->pub_.publish(std::move(msg));
-        ++frame_id;
-      }
-      loop_rate.sleep();
-    }
+    // Deprecated: This method is kept for backward compatibility
+    // but is no longer used. Frame capture is now handled by timer_callback().
+    RCLCPP_WARN(this->get_logger(),
+                "execute() is deprecated and should not be called directly. "
+                "Frame capture is now handled by timer callbacks.");
   }
 
   std::string

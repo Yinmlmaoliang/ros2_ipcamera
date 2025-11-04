@@ -69,8 +69,15 @@ namespace ros2_ipcamera
     execute();
 
   private:
+    /**
+     * Timer callback for capturing and publishing frames.
+     */
+    void
+    timer_callback();
+
     image_transport::Publisher pub_;
     rclcpp::QoS qos_;
+    rclcpp::TimerBase::SharedPtr timer_;
     std::chrono::milliseconds freq_ = 30ms;
 
     cv::VideoCapture cap_;
