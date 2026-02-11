@@ -44,7 +44,10 @@ namespace ros2_ipcamera
     this->pub_ = image_transport::create_publisher(
       this, "~/image_raw", qos_.get_rmw_qos_profile());
 
-    this->execute();
+    // Create timer for frame capture instead of blocking loop
+    this->timer_ = this->create_wall_timer(
+      this->freq_,
+      std::bind(&IpCamera::timer_callback, this));
   }
 
   IpCamera::IpCamera(const rclcpp::NodeOptions & options)
@@ -56,29 +59,9 @@ namespace ros2_ipcamera
   {
     rclcpp::Logger node_logger = this->get_logger();
 
-    // Get RTSP parameters
+    // Get RTSP URL parameter
     this->get_parameter<std::string>("rtsp_url", rtsp_url_);
-    this->get_parameter<std::string>("rtsp_username", rtsp_username_);
-    this->get_parameter<std::string>("rtsp_password", rtsp_password_);
-
-    // Build RTSP URL with authentication
-    if (!rtsp_username_.empty() && !rtsp_password_.empty()) {
-      // Extract protocol and address from URL
-      size_t pos = rtsp_url_.find("://");
-      if (pos != std::string::npos) {
-        std::string protocol = rtsp_url_.substr(0, pos);
-        std::string address = rtsp_url_.substr(pos + 3);
-        source_ = protocol + "://" + rtsp_username_ + ":" + rtsp_password_ + "@" + address;
-        RCLCPP_INFO(node_logger, "RTSP URL with authentication configured");
-      } else {
-        source_ = rtsp_url_;
-        RCLCPP_WARN(node_logger, "Invalid RTSP URL format, using as-is");
-      }
-    } else {
-      source_ = rtsp_url_;
-      RCLCPP_INFO(node_logger, "RTSP URL without authentication");
-    }
-
+    RCLCPP_INFO(node_logger, "RTSP URL: %s", rtsp_url_.c_str());
     RCLCPP_INFO(node_logger, "Connecting to RTSP stream...");
 
     this->get_parameter<int>("image_width", width_);
@@ -170,7 +153,7 @@ namespace ros2_ipcamera
     }
 
     // TODO(Tasuku): move to on_configure() when rclcpp_lifecycle available.
-    this->cap_.open(source_);
+    this->cap_.open(rtsp_url_);
 
     if (!this->cap_.isOpened()) {
       RCLCPP_ERROR(node_logger, "Could not open video stream");
@@ -219,20 +202,8 @@ namespace ros2_ipcamera
     rtsp_url_descriptor.name = "rtsp_url";
     rtsp_url_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
     rtsp_url_descriptor.description = "RTSP URL of the IP camera.";
-    rtsp_url_descriptor.additional_constraints = "Should be of the form 'rtsp://ip:port'";
+    rtsp_url_descriptor.additional_constraints = "Should be of the form 'rtsp://ip:port/stream'";
     this->declare_parameter("rtsp_url", "", rtsp_url_descriptor);
-
-    rcl_interfaces::msg::ParameterDescriptor rtsp_username_descriptor;
-    rtsp_username_descriptor.name = "rtsp_username";
-    rtsp_username_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-    rtsp_username_descriptor.description = "RTSP username for authentication.";
-    this->declare_parameter("rtsp_username", "", rtsp_username_descriptor);
-
-    rcl_interfaces::msg::ParameterDescriptor rtsp_password_descriptor;
-    rtsp_password_descriptor.name = "rtsp_password";
-    rtsp_password_descriptor.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
-    rtsp_password_descriptor.description = "RTSP password for authentication.";
-    this->declare_parameter("rtsp_password", "", rtsp_password_descriptor);
 
     rcl_interfaces::msg::ParameterDescriptor image_width_descriptor;
     image_width_descriptor.name = "image_width";
@@ -283,40 +254,44 @@ namespace ros2_ipcamera
   }
 
   void
+  IpCamera::timer_callback()
+  {
+    // Initialize OpenCV image matrices.
+    static cv::Mat frame;
+    static cv::Mat undistorted_frame;
+    static size_t frame_id = 0;
+
+    // Initialize a shared pointer to an Image message.
+    auto msg = std::make_unique<sensor_msgs::msg::Image>();
+    msg->is_bigendian = false;
+
+    // Get the frame from the video capture.
+    this->cap_ >> frame;
+    // Check if the frame was grabbed correctly
+    if (!frame.empty()) {
+      // Apply undistortion if enabled
+      if (enable_undistort_) {
+        cv::remap(frame, undistorted_frame, map1_, map2_, cv::INTER_LINEAR);
+        // Convert undistorted frame to a ROS image
+        convert_frame_to_message(undistorted_frame, frame_id, *msg);
+      } else {
+        // Convert original frame to a ROS image
+        convert_frame_to_message(frame, frame_id, *msg);
+      }
+      // Publish the image message and increment the frame_id.
+      this->pub_.publish(std::move(msg));
+      ++frame_id;
+    }
+  }
+
+  void
   IpCamera::execute()
   {
-    rclcpp::Rate loop_rate(freq_);
-
-    // Initialize OpenCV image matrices.
-    cv::Mat frame;
-    cv::Mat undistorted_frame;
-
-    size_t frame_id = 0;
-    // Our main event loop will spin until the user presses CTRL-C to exit.
-    while (rclcpp::ok()) {
-      // Initialize a shared pointer to an Image message.
-      auto msg = std::make_unique<sensor_msgs::msg::Image>();
-      msg->is_bigendian = false;
-
-      // Get the frame from the video capture.
-      this->cap_ >> frame;
-      // Check if the frame was grabbed correctly
-      if (!frame.empty()) {
-        // Apply undistortion if enabled
-        if (enable_undistort_) {
-          cv::remap(frame, undistorted_frame, map1_, map2_, cv::INTER_LINEAR);
-          // Convert undistorted frame to a ROS image
-          convert_frame_to_message(undistorted_frame, frame_id, *msg);
-        } else {
-          // Convert original frame to a ROS image
-          convert_frame_to_message(frame, frame_id, *msg);
-        }
-        // Publish the image message and increment the frame_id.
-        this->pub_.publish(std::move(msg));
-        ++frame_id;
-      }
-      loop_rate.sleep();
-    }
+    // Deprecated: This method is kept for backward compatibility
+    // but is no longer used. Frame capture is now handled by timer_callback().
+    RCLCPP_WARN(this->get_logger(),
+                "execute() is deprecated and should not be called directly. "
+                "Frame capture is now handled by timer callbacks.");
   }
 
   std::string
